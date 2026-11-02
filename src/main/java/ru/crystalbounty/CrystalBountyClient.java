@@ -38,7 +38,6 @@ public final class CrystalBountyClient implements ClientModInitializer {
         var player = client.player;
         var look = player.getRotationVec(1.0F);
         player.setVelocity(look.x * 1.35, Math.max(player.getVelocity().y, 0.12), look.z * 1.35);
-        player.velocityModified = true;
         nextDashAt = now + 3000;
     }
 }
