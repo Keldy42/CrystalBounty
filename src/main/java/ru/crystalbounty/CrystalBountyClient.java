@@ -16,23 +16,23 @@ public final class CrystalBountyClient implements ClientModInitializer {
     private static KeyBinding abilityKey;
     private static final BountyManager BOUNTIES = new BountyManager();
     private static long nextDashAt;
-    private static boolean dashEnabled = true;
+    private static boolean dashEnabled = false;
 
     @Override public void onInitializeClient() {
         ClientConfig.load();
         menuKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.crystalbounty.menu", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_B, "category.crystalbounty"));
         dashKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.crystalbounty.dash", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_V, "category.crystalbounty"));
-        abilityKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.crystalbounty.toggle_dash", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_UNKNOWN, "category.crystalbounty"));
+        abilityKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.crystalbounty.toggle_dash", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_G, "category.crystalbounty"));
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             while (menuKey.wasPressed()) client.setScreen(new BountyScreen(BOUNTIES));
-            while (abilityKey.wasPressed()) { dashEnabled = !dashEnabled; if (client.player != null) client.player.sendMessage(Text.literal("Crystal Bounty: Dash " + (dashEnabled ? "включён" : "выключен")), true); }
+            while (abilityKey.wasPressed()) {\n                if (!BOUNTIES.isDashUnlocked()) {\n                    if (client.player != null) client.player.sendMessage(Text.literal("Сначала купи Dash в меню (B)"), true);\n                } else {\n                    dashEnabled = !dashEnabled;\n                    if (client.player != null) client.player.sendMessage(Text.literal("Crystal Bounty: Dash " + (dashEnabled ? "включён" : "выключен")), true);\n                }\n            }
             while (dashKey.wasPressed()) performDash(client);
         });
         ClientReceiveMessageEvents.GAME.register((message, overlay) -> BOUNTIES.onGameMessage(message.getString()));
     }
 
     private static void performDash(net.minecraft.client.MinecraftClient client) {
-        if (!dashEnabled || client.player == null || client.world == null) return;
+        if (!dashEnabled || !BOUNTIES.isDashUnlocked() || client.player == null || client.world == null) return;
         long now = System.currentTimeMillis();
         if (now < nextDashAt) return;
         var player = client.player;
