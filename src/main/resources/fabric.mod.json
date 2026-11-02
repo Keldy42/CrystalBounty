@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "id": "crystalbounty",
+  "version": "${version}",
+  "name": "Crystal Bounty",
+  "description": "Client-side bounty board and dash ability for Fabric 1.21.1.",
+  "authors": ["CrystalBounty"],
+  "license": "MIT",
+  "environment": "client",
+  "entrypoints": { "client": ["ru.crystalbounty.CrystalBountyClient"] },
+  "depends": { "fabricloader": ">=0.16.0", "minecraft": "~1.21.1", "java": ">=21", "fabric-api": "*" }
+}
