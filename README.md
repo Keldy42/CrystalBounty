@@ -1,16 +1,10 @@
 # Crystal Bounty
-
-Client-side Fabric mod for Minecraft 1.21.1.
-
-## Build
-
-Requires Java 21. Run `gradle build` (or use the GitHub Actions workflow). The JAR is produced in `build/libs/`.
-
-## Controls
-- **B** — open bounty board
-- **V** — dash (3 second cooldown)
-
-The bounty target is selected from the client player list, excluding yourself. Progress and points are client-local; the server does not verify or grant rewards. Kill detection reads ordinary game chat and is necessarily heuristic on a client-only mod.
-
-## Important
-The dash changes local player velocity only. A multiplayer server may correct or reject movement; this mod does not bypass server movement checks.
+Клиентский Fabric-мод для Minecraft 1.21.1 (Java 21, Yarn 1.21.1+build.3).
+- Меню Кристалла на R с вращающейся 3D-моделью End Crystal.
+- Заказы выбирают случайного игрока из player list; отмена стоит 3 очка, награда — 1 очко.
+- GAME-сообщения проверяются на системный текст смерти, имя цели и имя игрока.
+- JSON-профили по адресу сервера или папке одиночного мира в config/crystal_bounty/.
+- Магазин и реестр способностей; Dash стоит 5 очков, включается/выключается и переназначается в меню.
+- Dash меняет локальную скорость и имеет cooldown 3 секунды.
+Сборка: JDK 21, Gradle 8.12.1, команда gradle clean build. JAR: build/libs/crystal-bounty-1.0.1.jar.
+Важно: заказ, очки и награда локальные; сервер их не подтверждает. Формат системных сообщений зависит от сервера, а сервер может корректировать рывок.

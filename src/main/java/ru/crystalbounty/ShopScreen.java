@@ -1,0 +1,7 @@
+package ru.crystalbounty;
+import net.minecraft.client.gui.DrawContext; import net.minecraft.client.gui.screen.Screen; import net.minecraft.client.gui.widget.ButtonWidget; import net.minecraft.text.Text;
+public final class ShopScreen extends Screen {
+ private final BountyManager manager; public ShopScreen(BountyManager m){super(Text.literal("Магазин способностей"));manager=m;}
+ protected void init(){int x=width/2,y=height/2;AbilityRegistry.Ability a=AbilityRegistry.get("dash");addDrawableChild(ButtonWidget.builder(Text.literal(manager.isDashPurchased()?"Рывок (Dash) — куплено":a.title()+" — "+a.price()+" очков"),b->{if(manager.buyDash()){if(client.player!=null)client.player.sendMessage(Text.literal("Рывок куплен! Настрой его в меню способностей."),false);client.setScreen(new ShopScreen(manager));}else if(client.player!=null)client.player.sendMessage(Text.literal("Недостаточно очков или способность уже куплена."),false);}).dimensions(x-115,y,230,20).build());addDrawableChild(ButtonWidget.builder(Text.literal("Назад"),b->client.setScreen(new BountyScreen(manager))).dimensions(x-115,y+30,230,20).build());}
+ public void render(DrawContext c,int mx,int my,float d){renderBackground(c,mx,my,d);c.drawCenteredTextWithShadow(textRenderer,title,width/2,height/2-55,0xFFB8F5FF);c.drawCenteredTextWithShadow(textRenderer,Text.literal("Баланс: "+manager.getPoints()+" очков"),width/2,height/2-30,0xFFFFE58A);super.render(c,mx,my,d);} public boolean shouldPause(){return false;}
+}

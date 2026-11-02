@@ -1,0 +1,2 @@
+package ru.crystalbounty;
+public final class DashAbility implements AbilityRegistry.Ability {public String id(){return "dash";}public String title(){return "Рывок (Dash)";}public int price(){return 5;}}

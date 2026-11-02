@@ -1,50 +1,16 @@
 package ru.crystalbounty;
-
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.network.PlayerListEntry;
-import java.util.*;
-
+import net.minecraft.client.MinecraftClient; import net.minecraft.client.network.PlayerListEntry; import java.nio.file.Path; import java.util.*; 
 public final class BountyManager {
-    private String target = "";
-    private int points = 0;
-    private boolean dashUnlocked = false;
-    private final Random random = new Random();
-
-    public String getTarget() { return target; }
-    public int getPoints() { return points; }
-    public boolean isDashUnlocked() { return dashUnlocked; }
-    public boolean hasTarget() { return !target.isBlank(); }
-
-    public String chooseTarget() {
-        MinecraftClient client = MinecraftClient.getInstance();
-        if (client.getNetworkHandler() == null || client.player == null) return target = "";
-        String self = client.player.getGameProfile().getName();
-        List<String> candidates = new ArrayList<>();
-        for (PlayerListEntry entry : client.getNetworkHandler().getPlayerList()) {
-            String name = entry.getProfile().getName();
-            if (!name.equalsIgnoreCase(self)) candidates.add(name);
-        }
-        target = candidates.isEmpty() ? "" : candidates.get(random.nextInt(candidates.size()));
-        return target;
-    }
-
-    public boolean buyDash() {
-        if (dashUnlocked || points < ClientConfig.dashCost) return false;
-        points -= ClientConfig.dashCost;
-        dashUnlocked = true;
-        return true;
-    }
-
-    public void onGameMessage(String raw) {
-        if (target.isBlank()) return;
-        MinecraftClient client = MinecraftClient.getInstance();
-        if (client.player == null) return;
-        String msg = raw.toLowerCase(Locale.ROOT);
-        if (msg.contains(target.toLowerCase(Locale.ROOT))
-                && msg.contains(client.player.getGameProfile().getName().toLowerCase(Locale.ROOT))
-                && (msg.contains("убил") || msg.contains("killed") || msg.contains("slain"))) {
-            points++;
-            target = "";
-        }
-    }
+ private final Random random=new Random(); private BountyData data=new BountyData(); private Path activeFile;
+ public BountyData data(){return data;} public int getPoints(){return data.points;} public String getTarget(){return data.target;} public boolean hasTarget(){return !data.target.isBlank();} public boolean isOrderActive(){return data.orderActive;} public boolean isTargetKilled(){return data.targetKilled;} public boolean isDashPurchased(){return data.dashPurchased;} public boolean isDashEnabled(){return data.dashEnabled;}
+ public void switchWorld(MinecraftClient c){if(c==null||(c.world==null&&c.getCurrentServerEntry()==null))return;Path p=ClientConfig.fileFor(c);if(p.equals(activeFile))return;activeFile=p;data=ClientConfig.load(p);}
+ public void save(){if(activeFile!=null)ClientConfig.save(activeFile,data);}
+ public boolean startOrder(MinecraftClient c){if(data.orderActive||data.targetKilled)return false;String t=chooseTarget(c);if(t.isBlank())return false;data.target=t;data.orderActive=true;data.targetKilled=false;save();return true;}
+ public boolean cancelOrder(MinecraftClient c){if(!data.orderActive||data.targetKilled)return false;data.points-=3;data.target="";data.orderActive=false;data.targetKilled=false;String t=chooseTarget(c);if(!t.isBlank()){data.target=t;data.orderActive=true;}save();return !t.isBlank();}
+ public boolean claimReward(){if(!data.orderActive||!data.targetKilled)return false;data.points++;data.target="";data.orderActive=false;data.targetKilled=false;save();return true;}
+ public boolean buyDash(){AbilityRegistry.Ability a=AbilityRegistry.get("dash");if(data.dashPurchased||data.points<a.price())return false;data.points-=a.price();data.dashPurchased=true;data.dashEnabled=false;save();return true;}
+ public void setDashEnabled(boolean v){data.dashEnabled=data.dashPurchased&&v;save();}
+ public void setDashKeyCode(int code){if(code>=32&&code<=348){data.dashKeyCode=code;save();}}
+ public boolean onSystemMessage(String raw){if(!data.orderActive||data.targetKilled||raw==null)return false;MinecraftClient c=MinecraftClient.getInstance();if(c.player==null)return false;String m=raw.toLowerCase(Locale.ROOT),t=data.target.toLowerCase(Locale.ROOT),s=c.player.getGameProfile().getName().toLowerCase(Locale.ROOT);boolean death=m.contains("killed")||m.contains("slain")||m.contains("died")||m.contains("was shot")||m.contains("fell")||m.contains("убил")||m.contains("убит")||m.contains("убита")||m.contains("погиб")||m.contains("умер")||m.contains("смерти");if(death&&m.contains(t)&&m.contains(s)){data.targetKilled=true;save();return true;}return false;}
+ private String chooseTarget(MinecraftClient c){if(c==null||c.player==null||c.getNetworkHandler()==null)return "";String self=c.player.getGameProfile().getName();List<String> candidates=new ArrayList<>();for(PlayerListEntry e:c.getNetworkHandler().getPlayerList()){String n=e.getProfile().getName();if(!n.equalsIgnoreCase(self))candidates.add(n);}return candidates.isEmpty()?"":candidates.get(random.nextInt(candidates.size()));}
 }

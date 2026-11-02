@@ -1,21 +1,11 @@
 package ru.crystalbounty;
-
-import net.fabricmc.loader.api.FabricLoader;
-import java.io.*;
-import java.nio.file.Path;
-import java.util.Properties;
-
+import com.google.gson.Gson; import com.google.gson.GsonBuilder; import net.fabricmc.loader.api.FabricLoader; import net.minecraft.client.MinecraftClient; import net.minecraft.util.WorldSavePath;
+import java.io.IOException; import java.nio.charset.StandardCharsets; import java.nio.file.Files; import java.nio.file.Path; import java.security.MessageDigest; import java.util.HexFormat;
 public final class ClientConfig {
-    private static final Path FILE = FabricLoader.getInstance().getConfigDir().resolve("crystalbounty.properties");
-    public static int dashCost = 5;
-    private ClientConfig() {}
-    public static void load() {
-        Properties p = new Properties();
-        if (FILE.toFile().exists()) try (Reader r = new FileReader(FILE.toFile())) { p.load(r); dashCost = Integer.parseInt(p.getProperty("dashCost", "5")); } catch (Exception ignored) {}
-        save();
-    }
-    public static void save() {
-        Properties p = new Properties(); p.setProperty("dashCost", Integer.toString(dashCost));
-        try (Writer w = new FileWriter(FILE.toFile())) { p.store(w, "Crystal Bounty client settings"); } catch (IOException ignored) {}
-    }
+ private static final Gson GSON=new GsonBuilder().setPrettyPrinting().create(); private static final Path DIR=FabricLoader.getInstance().getConfigDir().resolve("crystal_bounty");
+ private ClientConfig(){}
+ public static Path fileFor(MinecraftClient c){String id="unknown-world";if(c.getCurrentServerEntry()!=null)id="server-"+c.getCurrentServerEntry().address.toLowerCase();else if(c.getServer()!=null)id="world-"+c.getServer().getSavePath(WorldSavePath.ROOT).toAbsolutePath().normalize();else if(c.world!=null)id="local-"+c.world.getRegistryKey().getValue();String safe=id.replaceAll("[^a-zA-Z0-9._-]","_");if(safe.length()>48)safe=safe.substring(0,48);return DIR.resolve(safe+"_"+hash(id).substring(0,12)+".json");}
+ public static BountyData load(Path file){try{Files.createDirectories(DIR);if(Files.isRegularFile(file)){BountyData d=GSON.fromJson(Files.readString(file,StandardCharsets.UTF_8),BountyData.class);if(d!=null){d.normalize();return d;}}}catch(Exception e){System.err.println("[CrystalBounty] Load failed: "+e.getMessage());}return new BountyData();}
+ public static void save(Path file,BountyData d){try{Files.createDirectories(DIR);d.normalize();Path tmp=file.resolveSibling(file.getFileName()+".tmp");Files.writeString(tmp,GSON.toJson(d),StandardCharsets.UTF_8);try{Files.move(tmp,file,java.nio.file.StandardCopyOption.REPLACE_EXISTING,java.nio.file.StandardCopyOption.ATOMIC_MOVE);}catch(IOException e){Files.move(tmp,file,java.nio.file.StandardCopyOption.REPLACE_EXISTING);}}catch(IOException e){System.err.println("[CrystalBounty] Save failed: "+e.getMessage());}}
+ private static String hash(String s){try{return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(s.getBytes(StandardCharsets.UTF_8)));}catch(Exception e){throw new IllegalStateException(e);}}
 }

@@ -3,10 +3,10 @@
   "id": "crystalbounty",
   "version": "${version}",
   "name": "Crystal Bounty",
-  "description": "Client-side bounty board and dash ability for Fabric 1.21.1.",
-  "authors": ["CrystalBounty"],
+  "description": "Client-side bounty contracts, End Crystal GUI and Dash ability for Fabric 1.21.1.",
+  "authors": ["Keldy42"],
   "license": "MIT",
   "environment": "client",
-  "entrypoints": { "client": ["ru.crystalbounty.CrystalBountyClient"] },
-  "depends": { "fabricloader": ">=0.16.0", "minecraft": "~1.21.1", "java": ">=21", "fabric-api": "*" }
+  "entrypoints": {"client": ["ru.crystalbounty.CrystalBountyClient"]},
+  "depends": {"fabricloader": ">=0.16.0", "minecraft": "~1.21.1", "java": ">=21", "fabric-api": "*"}
 }

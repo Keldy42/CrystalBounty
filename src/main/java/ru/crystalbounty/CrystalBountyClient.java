@@ -1,43 +1,12 @@
 package ru.crystalbounty;
-
-import net.fabricmc.api.ClientModInitializer;
-import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
-import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents;
-import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
-import net.minecraft.client.option.KeyBinding;
-import net.minecraft.client.util.InputUtil;
-import net.minecraft.text.Text;
-import org.lwjgl.glfw.GLFW;
-
+import net.fabricmc.api.ClientModInitializer; import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents; import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents; import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper; import net.minecraft.client.MinecraftClient; import net.minecraft.client.option.KeyBinding; import net.minecraft.client.util.InputUtil; import net.minecraft.text.Text; import org.lwjgl.glfw.GLFW;
 public final class CrystalBountyClient implements ClientModInitializer {
-    public static final String MOD_ID = "crystalbounty";
-    private static KeyBinding menuKey;
-    private static KeyBinding dashKey;
-    private static KeyBinding abilityKey;
-    private static final BountyManager BOUNTIES = new BountyManager();
-    private static long nextDashAt;
-    private static boolean dashEnabled = false;
-
-    @Override public void onInitializeClient() {
-        ClientConfig.load();
-        menuKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.crystalbounty.menu", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_B, "category.crystalbounty"));
-        dashKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.crystalbounty.dash", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_V, "category.crystalbounty"));
-        abilityKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.crystalbounty.toggle_dash", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_G, "category.crystalbounty"));
-        ClientTickEvents.END_CLIENT_TICK.register(client -> {
-            while (menuKey.wasPressed()) client.setScreen(new BountyScreen(BOUNTIES));
-            while (abilityKey.wasPressed()) {\n                if (!BOUNTIES.isDashUnlocked()) {\n                    if (client.player != null) client.player.sendMessage(Text.literal("Сначала купи Dash в меню (B)"), true);\n                } else {\n                    dashEnabled = !dashEnabled;\n                    if (client.player != null) client.player.sendMessage(Text.literal("Crystal Bounty: Dash " + (dashEnabled ? "включён" : "выключен")), true);\n                }\n            }
-            while (dashKey.wasPressed()) performDash(client);
-        });
-        ClientReceiveMessageEvents.GAME.register((message, overlay) -> BOUNTIES.onGameMessage(message.getString()));
-    }
-
-    private static void performDash(net.minecraft.client.MinecraftClient client) {
-        if (!dashEnabled || !BOUNTIES.isDashUnlocked() || client.player == null || client.world == null) return;
-        long now = System.currentTimeMillis();
-        if (now < nextDashAt) return;
-        var player = client.player;
-        var look = player.getRotationVec(1.0F);
-        player.setVelocity(look.x * 1.35, Math.max(player.getVelocity().y, 0.12), look.z * 1.35);
-        nextDashAt = now + 3000;
-    }
+ public static final String MOD_ID="crystalbounty"; private static final BountyManager MANAGER=new BountyManager(); private static KeyBinding menuKey,dashKey; private static long nextDashAt;
+ public static BountyManager manager(){return MANAGER;}
+ public void onInitializeClient(){menuKey=KeyBindingHelper.registerKeyBinding(new KeyBinding("key.crystalbounty.menu",InputUtil.Type.KEYSYM,GLFW.GLFW_KEY_R,"category.crystalbounty"));dashKey=KeyBindingHelper.registerKeyBinding(new KeyBinding("key.crystalbounty.dash",InputUtil.Type.KEYSYM,GLFW.GLFW_KEY_V,"category.crystalbounty"));
+ ClientTickEvents.END_CLIENT_TICK.register(c->{if(c.world!=null||c.getCurrentServerEntry()!=null){MANAGER.switchWorld(c);applyDashBinding();}while(menuKey.wasPressed())if(c.world!=null)c.setScreen(new BountyScreen(MANAGER));while(dashKey.wasPressed())performDash(c);});
+ ClientReceiveMessageEvents.GAME.register((message,overlay)->{if(MANAGER.onSystemMessage(message.getString())){MinecraftClient c=MinecraftClient.getInstance();if(c.player!=null)c.player.sendMessage(Text.literal("Кристалл: цель устранена. Вернись за наградой!"),true);}});
+ }
+ public static void applyDashBinding(){int code=MANAGER.data().dashKeyCode;if(dashKey!=null&&dashKey.getBoundKey().getCode()!=code){dashKey.setBoundKey(InputUtil.Type.KEYSYM.createFromCode(code));KeyBinding.updateKeysByCode();}}
+ private static void performDash(MinecraftClient c){if(c.player==null||c.world==null)return;if(!MANAGER.isDashPurchased()||!MANAGER.isDashEnabled()){c.player.sendMessage(Text.literal("Рывок выключен. Включи его в настройках способностей."),true);return;}long now=System.currentTimeMillis();if(now<nextDashAt){c.player.sendMessage(Text.literal("Рывок перезаряжается: "+((nextDashAt-now+999)/1000)+" сек."),true);return;}c.player.setVelocity(c.player.getRotationVec(1.0F).multiply(1.35));c.player.velocityModified=true;nextDashAt=now+3000;c.player.sendMessage(Text.literal("✦ Рывок!"),true);}
 }
