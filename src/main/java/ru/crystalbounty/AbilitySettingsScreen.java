@@ -1,0 +1,11 @@
+package ru.crystalbounty;
+import net.minecraft.client.gui.DrawContext; import net.minecraft.client.gui.screen.Screen; import net.minecraft.client.gui.widget.ButtonWidget; import net.minecraft.text.Text; import org.lwjgl.glfw.GLFW;
+public final class AbilitySettingsScreen extends Screen {
+ private final BountyManager manager; private boolean waiting;
+ public AbilitySettingsScreen(BountyManager m){super(Text.literal("Настройка способностей"));manager=m;}
+ protected void init(){int x=width/2,y=height/2-8;if(manager.isDashPurchased()){addDrawableChild(ButtonWidget.builder(toggleText(),b->{manager.setDashEnabled(!manager.isDashEnabled());b.setMessage(toggleText());}).dimensions(x-115,y,230,20).build());addDrawableChild(ButtonWidget.builder(keyText(),b->waiting=true).dimensions(x-115,y+26,230,20).build());}else addDrawableChild(ButtonWidget.builder(Text.literal("Сначала купи Рывок в магазине"),b->client.setScreen(new ShopScreen(manager))).dimensions(x-115,y,230,20).build());addDrawableChild(ButtonWidget.builder(Text.literal("Назад"),b->client.setScreen(new BountyScreen(manager))).dimensions(x-115,y+58,230,20).build());}
+ private Text toggleText(){return Text.literal("Рывок: "+(manager.isDashEnabled()?"ВКЛ":"ВЫКЛ"));}
+ private Text keyText(){String name=GLFW.glfwGetKeyName(manager.data().dashKeyCode,0);return Text.literal("Клавиша рывка: "+(name==null?manager.data().dashKeyCode:name)+" (переназначить)");}
+ public boolean keyPressed(int key,int scan,int mods){if(waiting){if(key==GLFW.GLFW_KEY_ESCAPE){waiting=false;return true;}if(key!=GLFW.GLFW_KEY_UNKNOWN){manager.setDashKeyCode(key);CrystalBountyClient.applyDashBinding();waiting=false;clearAndInit();}return true;}return super.keyPressed(key,scan,mods);}
+ public void render(DrawContext c,int mx,int my,float d){renderBackground(c,mx,my,d);c.drawCenteredTextWithShadow(textRenderer,title,width/2,height/2-65,0xFFB8F5FF);if(waiting)c.drawCenteredTextWithShadow(textRenderer,Text.literal("Нажми новую клавишу (Esc — отмена)"),width/2,height/2-35,0xFFFFE58A);else if(!manager.isDashPurchased())c.drawCenteredTextWithShadow(textRenderer,Text.literal("Способности появляются после покупки."),width/2,height/2-35,0xFFFFFFFF);super.render(c,mx,my,d);} public boolean shouldPause(){return false;}
+}

@@ -1,78 +1,14 @@
 package ru.crystalbounty;
-
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.widget.ButtonWidget;
-import net.minecraft.text.Text;
-
+import net.minecraft.client.gui.DrawContext; import net.minecraft.client.gui.screen.Screen; import net.minecraft.client.gui.widget.ButtonWidget; import net.minecraft.client.render.LightmapTextureManager; import net.minecraft.client.render.VertexConsumerProvider; import net.minecraft.client.util.math.MatrixStack; import net.minecraft.entity.EntityType; import net.minecraft.entity.decoration.EndCrystalEntity; import net.minecraft.text.Text; import org.joml.Quaternionf;
 public final class BountyScreen extends Screen {
-    private final BountyManager manager;
-    private int spin;
-
-    public BountyScreen(BountyManager manager) {
-        super(Text.literal("Crystal Bounty"));
-        this.manager = manager;
-    }
-
-    @Override
-    protected void init() {
-        int cx = width / 2;
-        int y = height / 2 + 12;
-        addDrawableChild(ButtonWidget.builder(Text.literal("Выбрать новую цель"), button -> {
-            String target = manager.chooseTarget();
-            if (target.isBlank()) {
-                if (client != null && client.player != null) {
-                    client.player.sendMessage(Text.literal("Целей для охоты сейчас нет"), false);
-                }
-            }
-        }).dimensions(cx - 100, y, 200, 20).build());
-
-        addDrawableChild(ButtonWidget.builder(
-                Text.literal(manager.isDashUnlocked() ? "Dash уже куплен" : "Купить Dash — " + ClientConfig.dashCost + " очков"),
-                button -> {
-                    if (manager.buyDash()) {
-                        button.setMessage(Text.literal("Dash куплен!"));
-                    } else if (client != null && client.player != null) {
-                        client.player.sendMessage(Text.literal("Недостаточно очков для покупки Dash"), false);
-                    }
-                }).dimensions(cx - 100, y + 25, 200, 20).build());
-
-        addDrawableChild(ButtonWidget.builder(Text.literal("Закрыть"), button -> close())
-                .dimensions(cx - 100, y + 50, 200, 20).build());
-    }
-
-    @Override
-    public void render(DrawContext ctx, int mouseX, int mouseY, float delta) {
-        renderBackground(ctx, mouseX, mouseY, delta);
-        int cx = width / 2;
-        int top = height / 2 - 90;
-        ctx.fill(cx - 125, top - 10, cx + 125, top + 135, 0xD0202638);
-        ctx.drawBorder(cx - 125, top - 10, 250, 145, 0xFF66D9F0);
-        ctx.drawCenteredTextWithShadow(textRenderer, Text.literal("✧  CRYSTAL BOUNTY  ✧"), cx, top, 0xB8F5FF);
-        spin++;
-        String[] crystals = {"◇", "◈", "◆", "◈"};
-        ctx.drawCenteredTextWithShadow(textRenderer, Text.literal(crystals[(spin / 8) % crystals.length]), cx, top + 22, 0x8FEAFF);
-        ctx.drawCenteredTextWithShadow(textRenderer,
-                Text.literal("Цель: " + (manager.hasTarget() ? manager.getTarget() : "не выбрана")),
-                cx, top + 48, 0xFFFFFFFF);
-        ctx.drawCenteredTextWithShadow(textRenderer, Text.literal("Очки: " + manager.getPoints()),
-                cx, top + 64, 0xFFFFE58A);
-        ctx.drawCenteredTextWithShadow(textRenderer,
-                Text.literal("B — меню | V — рывок"), cx, top + 82, 0xFFBBBBBB);
-        super.render(ctx, mouseX, mouseY, delta);
-    }
-
-    @Override
-    public boolean shouldPause() {
-        return false;
-    }
-
-    @Override
-    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-        if (keyCode == 256) {
-            close();
-            return true;
-        }
-        return super.keyPressed(keyCode, scanCode, modifiers);
-    }
+ private final BountyManager manager; private EndCrystalEntity crystal; private float rotation;
+ public BountyScreen(BountyManager m){super(Text.literal("Crystal Bounty"));manager=m;}
+ protected void init(){if(client!=null&&client.world!=null){crystal=new EndCrystalEntity(EntityType.END_CRYSTAL,client.world);crystal.setShowBottom(false);}int cx=width/2,y=height/2+52;
+ addDrawableChild(ButtonWidget.builder(orderText(),b->{if(manager.isTargetKilled()){manager.claimReward();client.setScreen(new BountyScreen(manager));}else if(manager.isOrderActive()){manager.cancelOrder(client);if(client.player!=null)client.player.sendMessage(Text.literal("Заказ отменён. Списано 3 очка; выбрана следующая цель, если есть игроки."),false);client.setScreen(new BountyScreen(manager));}else if(!manager.startOrder(client)){if(client.player!=null)client.player.sendMessage(Text.literal("Целей для охоты сейчас нет"),false);}else client.setScreen(new BountyScreen(manager));}).dimensions(cx-105,y,210,20).build());
+ addDrawableChild(ButtonWidget.builder(Text.literal("Магазин"),b->client.setScreen(new ShopScreen(manager))).dimensions(cx-105,y+25,210,20).build());
+ addDrawableChild(ButtonWidget.builder(Text.literal("Настройка способностей"),b->client.setScreen(new AbilitySettingsScreen(manager))).dimensions(cx-105,y+50,210,20).build());}
+ private Text orderText(){if(manager.isTargetKilled())return Text.literal("Забрать награду (+1)");if(manager.isOrderActive())return Text.literal("Отменить заказ (-3)");return Text.literal("Взять заказ");}
+ public void render(DrawContext ctx,int mx,int my,float delta){renderBackground(ctx,mx,my,delta);int cx=width/2,top=height/2-112;ctx.fill(cx-145,top-8,cx+145,height/2+145,0xD91A2033);ctx.drawBorder(cx-145,top-8,290,height/2+153-top,0xFF64DFF5);ctx.drawCenteredTextWithShadow(textRenderer,Text.literal("✧  CRYSTAL BOUNTY  ✧"),cx,top,0xFFB8F5FF);renderCrystal(ctx,cx,top+56,delta);String status=manager.isTargetKilled()?"Цель устранена! Забери награду.":manager.isOrderActive()?"Заказ активен: "+manager.getTarget():"Кристалл ждёт нового охотника.";ctx.drawCenteredTextWithShadow(textRenderer,Text.literal(status),cx,height/2+20,0xFFFFFFFF);ctx.drawCenteredTextWithShadow(textRenderer,Text.literal("Очки: "+manager.getPoints()),cx,height/2+35,0xFFFFE58A);super.render(ctx,mx,my,delta);}
+ private void renderCrystal(DrawContext ctx,int x,int y,float delta){if(client==null||crystal==null)return;rotation+=delta*1.5F;MatrixStack m=ctx.getMatrices();m.push();m.translate(x,y,80);m.scale(34,34,34);m.multiply(new Quaternionf().rotateY(rotation*0.035F));VertexConsumerProvider.Immediate v=client.getBufferBuilders().getEntityVertexConsumers();client.getEntityRenderDispatcher().setRenderShadows(false);client.getEntityRenderDispatcher().render(crystal,0,0,0,0,delta,m,v,LightmapTextureManager.MAX_LIGHT_COORDINATE);v.draw();m.pop();}
+ public boolean shouldPause(){return false;}
 }
